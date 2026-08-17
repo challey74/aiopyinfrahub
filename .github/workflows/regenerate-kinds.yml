@@ -1,0 +1,47 @@
+name: Regenerate kinds
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
+      - run: uv sync --frozen
+      # The generator defaults to https://sandbox.infrahub.app, which serves
+      # /api/schema anonymously, so no token secret is needed here.
+      - run: uv run scripts/generate_kinds.py
+      - run: uv run ruff format src/aiopyinfrahub/kinds_generated.py src/aiopyinfrahub/hints_generated.pyi
+      # PRs opened with GITHUB_TOKEN don't trigger the CI workflow, so run
+      # the full check suite here before opening one.
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run pyright
+      - run: uv run pytest
+      - uses: peter-evans/create-pull-request@v8
+        with:
+          commit-message: "chore: regenerate kind hints from sandbox.infrahub.app"
+          title: "chore: regenerate kind hints"
+          body: >
+            Automated regeneration of the typed kind hints in
+            src/aiopyinfrahub/kinds_generated.py and hints_generated.pyi from
+            sandbox.infrahub.app's /api/schema. A diff here usually means an
+            Infrahub release changed the built-in Core/Builtin kinds, or the
+            sandbox's demo schema changed.
+
+
+            The hints never restrict runtime: unknown kinds keep working
+            through Api.__getattr__, so a stale file is a hint gap, not a
+            breakage. If the sandbox is down or has moved to an Infrahub
+            version this library does not support yet, close this and run the
+            generator against your own instance
+            (`uv run scripts/generate_kinds.py --url https://your-infrahub --token ...`).
+          branch: regenerate-kinds
+          delete-branch: true

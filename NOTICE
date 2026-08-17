@@ -1,0 +1,11 @@
+aiopyinfrahub
+Copyright 2026 Cody Halley
+
+This work is an independent async client for the Infrahub GraphQL and REST
+APIs. It follows the public API shape conventions of the pynetbox/pynautobot
+client lineage where compatible with asyncio, and is informed by the official
+infrahub-sdk (Apache 2.0, OpsMill).
+
+No code from infrahub-sdk, pynautobot, or pynetbox is vendored here. Any
+future vendored code must retain its original copyright notice and Apache
+License 2.0 header.

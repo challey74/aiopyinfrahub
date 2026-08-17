@@ -1,0 +1,67 @@
+[project]
+name = "aiopyinfrahub"
+version = "0.1.0"
+description = "Fully async Infrahub API client built on httpx"
+readme = "README.md"
+authors = [
+    { name = "Cody Halley" }
+]
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.11"
+keywords = ["infrahub", "async", "asyncio", "httpx", "api", "client", "graphql", "network-automation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Telecommunications Industry",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: System :: Networking",
+    "Typing :: Typed",
+]
+dependencies = [
+    "httpx>=0.28.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/challey74/aiopyinfrahub"
+Repository = "https://github.com/challey74/aiopyinfrahub"
+Changelog = "https://github.com/challey74/aiopyinfrahub/blob/main/CHANGELOG.md"
+Issues = "https://github.com/challey74/aiopyinfrahub/issues"
+
+[build-system]
+requires = ["uv_build>=0.11.31,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# Ship tests and the changelog in the sdist for distro packagers.
+source-include = ["tests/**", "CHANGELOG.md"]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.411",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.0",
+]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+extend-select = ["I", "ASYNC"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.pyright]
+include = ["src"]
+# hints_generated.pyi is deliberately stub-only (never imported at runtime).
+reportMissingModuleSource = false
