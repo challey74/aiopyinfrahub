@@ -1,0 +1,5 @@
+# Store LF in the index regardless of platform, so files committed from
+# Windows and files regenerated in CI stay byte-identical. Without this,
+# a CRLF-committed file makes the weekly regenerate-kinds workflow see
+# every line as changed (this bit aiopynautobot; ported per house rule).
+* text=auto eol=lf
