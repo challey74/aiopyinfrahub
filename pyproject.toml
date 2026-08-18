@@ -36,7 +36,7 @@ Changelog = "https://github.com/challey74/aiopyinfrahub/blob/main/CHANGELOG.md"
 Issues = "https://github.com/challey74/aiopyinfrahub/issues"
 
 [build-system]
-requires = ["uv_build>=0.11.31,<0.13.0"]
+requires = ["uv_build>=0.12.5,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
