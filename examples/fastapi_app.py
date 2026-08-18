@@ -1,7 +1,7 @@
 """A runnable FastAPI app sharing one aiopyinfrahub client.
 
 The Api async context manager is one-shot: enter it for the application's
-lifetime rather than per request, so the httpx connection pool is reused,
+lifetime rather than per request, so the httpx2 connection pool is reused,
 the branch schema is fetched once instead of per request, and everything is
 closed deterministically on shutdown. One Api instance is safe to share
 across concurrent requests.

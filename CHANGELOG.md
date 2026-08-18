@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-18
+
+### Changed
+
+- **Breaking**: the runtime dependency is now
+  [httpx2](https://github.com/pydantic/httpx2) rather than httpx, picked up
+  after upstream activity on httpx stalled. httpx2 is still the *only* runtime
+  dependency and the client's own API is unchanged, but two things cross the
+  boundary: a custom client passed via `client=` must now be an
+  `httpx2.AsyncClient`, and a connection failure surfaces httpx2's transport
+  exceptions (`httpx2.TransportError` and its subclasses) rather than httpx's.
+  A caching transport built for httpx, hishel's among them, will not accept an
+  httpx2 client.
+
 ## [0.1.0] - 2026-08-18
 
 Initial release. Targets Infrahub 1.3+, written against 1.10.x behavior.
@@ -183,5 +197,6 @@ Initial release. Targets Infrahub 1.3+, written against 1.10.x behavior.
 - A runnable FastAPI example (`examples/fastapi_app.py`) showing the
   app-state / lifespan usage pattern for long-lived services.
 
-[unreleased]: https://github.com/challey74/aiopyinfrahub/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/challey74/aiopyinfrahub/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/challey74/aiopyinfrahub/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/challey74/aiopyinfrahub/releases/tag/v0.1.0

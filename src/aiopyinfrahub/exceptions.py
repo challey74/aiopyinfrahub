@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
+import httpx2
 
 
 class RequestError(Exception):
     """Infrahub returned a non-success HTTP response."""
 
-    def __init__(self, response: httpx.Response) -> None:
+    def __init__(self, response: httpx2.Response) -> None:
         self.response = response
         self.status_code = response.status_code
         self.url = str(response.url)
@@ -32,7 +32,7 @@ class RequestError(Exception):
 class ContentError(Exception):
     """A successful response contained non-JSON content."""
 
-    def __init__(self, response: httpx.Response) -> None:
+    def __init__(self, response: httpx2.Response) -> None:
         self.response = response
         self.url = str(response.url)
         self.error = (
@@ -83,7 +83,7 @@ class GraphQLError(Exception):
         errors: The `errors` array describing what went wrong.
     """
 
-    def __init__(self, response: httpx.Response, errors: list[Any]) -> None:
+    def __init__(self, response: httpx2.Response, errors: list[Any]) -> None:
         self.response = response
         self.status_code = response.status_code
         self.url = str(response.url)

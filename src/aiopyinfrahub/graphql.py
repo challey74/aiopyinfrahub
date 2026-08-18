@@ -33,7 +33,7 @@ def segment(value: str) -> str:
 
     Every caller value that lands in a path goes through here: branch
     names, storage identifiers, file-object ids and kinds, artifact and
-    transform ids, stored-query names. Nothing else escapes it: httpx
+    transform ids, stored-query names. Nothing else escapes it: httpx2
     quotes query parameters but leaves the path alone. Slashes are
     encoded too, unlike in the sister libraries, because no Infrahub path
     segment is allowed to span several.
@@ -290,7 +290,7 @@ class GraphQLQuery:
         if update_group is not None:
             params["update_group"] = update_group
         if subscribers:
-            # Repeatable: one `subscribers=` per id, which is how httpx
+            # Repeatable: one `subscribers=` per id, which is how httpx2
             # renders a list-valued parameter.
             params["subscribers"] = subscribers
         resp = await self.api._request_response(

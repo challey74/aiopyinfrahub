@@ -1,11 +1,14 @@
 # aiopyinfrahub
 
 [![CI](https://github.com/challey74/aiopyinfrahub/actions/workflows/ci.yml/badge.svg)](https://github.com/challey74/aiopyinfrahub/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/aiopyinfrahub)](https://pypi.org/project/aiopyinfrahub/)
+[![Python versions](https://img.shields.io/pypi/pyversions/aiopyinfrahub)](https://pypi.org/project/aiopyinfrahub/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/challey74/aiopyinfrahub/blob/main/LICENSE)
 
 Fully async Infrahub API client for Python, built on
-[httpx](https://www.python-httpx.org/), with httpx as its **only** runtime
-dependency (the official `infrahub-sdk` carries nine).
+[httpx2](https://github.com/pydantic/httpx2) (Pydantic's maintained
+continuation of httpx), with httpx2 as its **only** runtime dependency (the
+official `infrahub-sdk` carries nine).
 
 Inspired by the pynetbox/pynautobot client lineage and by the official
 [infrahub-sdk](https://github.com/opsmill/infrahub-sdk-python), and a sister
@@ -92,7 +95,7 @@ lazy, and the wrappers get out of your way:
 | `await client.login()` before requests              | automatic on the first request needing it              |
 | `client.store.get(id)` (identity map)               | not included: every read is an explicit request        |
 | `batch = client.create_batch()`                     | `asyncio.gather` + `Semaphore` (recipe below)          |
-| nine runtime dependencies                           | one (httpx)                                            |
+| nine runtime dependencies                           | one (httpx2)                                           |
 
 The kind name is an attribute, so `ih.InfraDevice` is the whole traversal.
 `ih.kind("InfraDevice")` is the escape hatch when the kind is held in a string.
@@ -128,7 +131,7 @@ are querying several kinds at once.
 
 ## Features
 
-- **Explicit async everywhere**: `httpx.AsyncClient` under the hood, used as an
+- **Explicit async everywhere**: `httpx2.AsyncClient` under the hood, used as an
   async context manager so the connection pool closes deterministically.
   Nothing is lazily fetched behind an attribute access or a property.
 - **Two ways in**: `token=` sends `X-INFRAHUB-KEY` exactly as before, and
@@ -299,26 +302,25 @@ fetched once rather than per request. See
 [examples/fastapi_app.py](https://github.com/challey74/aiopyinfrahub/blob/main/examples/fastapi_app.py)
 for a runnable app.
 
-### Custom httpx client
+### Custom httpx2 client
 
-Pass your own `httpx.AsyncClient` for custom SSL, proxies, event hooks, or
+Pass your own `httpx2.AsyncClient` for custom SSL, proxies, event hooks, or
 `MockTransport` in tests:
 
 ```python
-client = httpx.AsyncClient(verify="/path/to/ca.pem", timeout=60)
+client = httpx2.AsyncClient(verify="/path/to/ca.pem", timeout=60)
 async with aiopyinfrahub.api(url, token=token, client=client) as ih:
     ...
 ```
 
-Per httpx convention, a client you pass in is yours to close: `aclose()` and
+Per httpx2 convention, a client you pass in is yours to close: `aclose()` and
 the context manager only close clients the Api created itself, so one client
 can safely back several Api instances.
 
 Response caching is deliberately not built in: Infrahub is a source of truth,
 and the library can't know your staleness tolerance. If you want HTTP caching,
-pass a client using [hishel](https://hishel.com/)'s `AsyncCacheTransport` and
-set the policy yourself. Note that node reads are POSTs, which most HTTP caches
-will not cache.
+pass a client with a caching transport and set the policy yourself. Note that
+node reads are POSTs, which most HTTP caches will not cache.
 
 ## Development
 

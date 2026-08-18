@@ -6,7 +6,7 @@ here; this file is the single source.
 ## Project
 
 `aiopyinfrahub` - a fully async Infrahub API client, built from scratch with
-httpx. It is inspired by the [pynetbox](https://github.com/netbox-community/pynetbox)
+httpx2. It is inspired by the [pynetbox](https://github.com/netbox-community/pynetbox)
 / [pynautobot](https://github.com/nautobot/pynautobot) client lineage and by the
 official [infrahub-sdk](https://github.com/opsmill/infrahub-sdk-python)
 (Apache 2.0, OpsMill), but is **not a port** of either: the sync clients'
@@ -26,7 +26,8 @@ everything below it should not.
 
 Package layout: `src/aiopyinfrahub/`, tests in `tests/`. Managed with `uv`.
 
-**Status: 0.1.0 released, with SDK feature parity per PLAN.md Phase 2.**
+**Status: 0.2.0 released (httpx2), with SDK feature parity per PLAN.md
+Phase 2.**
 [PLAN.md](PLAN.md) is the pinned design: the
 "Public surface" block there is the canonical usage example, and every
 divergence from the sisters is written down under "Resolved decisions" so it is
@@ -82,7 +83,7 @@ impossible, wrong, or deliberately rejected here, and must NOT be replicated:
    way, which is what made the opt-in additive rather than breaking, and
    metadata is never diffed or saved.
 6. **A GraphQL parser dependency** - queries are rendered dict-to-text, no
-   graphql-core, because httpx stays the only runtime dependency. That puts the
+   graphql-core, because httpx2 stays the only runtime dependency. That puts the
    injection surface on us: kind names, field names, and filter keys are
    validated as identifiers before rendering, and string values are inlined
    through `json.dumps` (GraphQL string literals share JSON's escape grammar).
@@ -136,7 +137,7 @@ assumptions that must **not** be carried over:
 - **Retries key on idempotency, not method** (see Design constraint 7). The
   rest of the policy is verbatim from the sisters: 429 retried for everything
   honoring `Retry-After` (capped at 60s), 502/503/504 and
-  `httpx.TransportError` retried only when idempotent, capped exponential
+  `httpx2.TransportError` retried only when idempotent, capped exponential
   backoff with jitter.
 - **HTTP 200 can carry errors.** `resp.is_success` is not the end of error
   handling on the GraphQL route. 401/403/404 still arrive as non-success HTTP
@@ -191,7 +192,7 @@ All HTTP funnels through `Api._send()` ([api.py](src/aiopyinfrahub/api.py)):
 the `X-INFRAHUB-KEY` or `Authorization: Bearer` header, User-Agent, branch and
 `at` placement, error raising (non-success -> `RequestError`), and the retry
 loop (429 for everything honoring `Retry-After`; 502/503/504 and
-`httpx.TransportError` only when `idempotent=True`; `Api(retries=)` bounds
+`httpx2.TransportError` only when `idempotent=True`; `Api(retries=)` bounds
 attempts, `_backoff()` does capped exponential backoff with jitter) all live
 there and nowhere else.
 
@@ -207,7 +208,7 @@ Multipart parts travel through its `files=` argument rather than being posted
 at the call site, so an upload still gets the headers, the auth, and the retry
 policy. `Api._request()` adds JSON decoding (`_decode` -> `ContentError`) on
 top of that. The layering is load-bearing twice over: the GraphQL path needs
-the raw `httpx.Response` to inspect a 200 body that carries `errors`, and the
+the raw `httpx2.Response` to inspect a 200 body that carries `errors`, and the
 storage, artifact, and Jinja2-transform routes answer with bytes or text that
 must not be decoded as JSON at all.
 
@@ -272,7 +273,7 @@ Module by module:
   opens no hole; and `segment()` percent-encodes a value used as a **URL path
   segment** (`safe=""`, slashes included, since no Infrahub path segment may
   span two), which every caller value that lands in a path goes through, since
-  httpx escapes query parameters and leaves the path alone. `stored()` runs a
+  httpx2 escapes query parameters and leaves the path alone. `stored()` runs a
   server-side CoreGraphQLQuery through `POST /api/query/{id}`, the one GraphQL
   call that is a REST route and therefore takes `?branch=` rather than a path
   suffix.
@@ -389,7 +390,7 @@ stale generated file a missing hint rather than a breakage.
 
 Tests run entirely against `FakeInfrahub` in
 [tests/conftest.py](tests/conftest.py) - an in-memory Infrahub behind
-`httpx.MockTransport` (no network, no mocking library). It serves
+`httpx2.MockTransport` (no network, no mocking library). It serves
 `GET /api/schema` and `GET /api/info`, the auth routes with **expirable JWTs**
 (so the 401 -> refresh -> replay and refresh-401 -> relogin paths are
 exercised rather than asserted about), and the storage, artifact, transform,
@@ -430,19 +431,20 @@ before adding any of them.
 
 ## Conventions
 
-- httpx `AsyncClient` is the only HTTP transport, and httpx is the only runtime
-  dependency. Nothing else, ever: no pydantic, no graphql-core, no tenacity
-  (retries are hand-rolled), no respx (the fake server is hand-rolled).
+- httpx2 `AsyncClient` is the only HTTP transport, and httpx2 is the only
+  runtime dependency. Nothing else, ever: no pydantic, no graphql-core, no
+  tenacity (retries are hand-rolled), no respx (the fake server is
+  hand-rolled).
 - The client is usable as an async context manager
   (`async with aiopyinfrahub.api(...) as ih:`) so the connection pool closes
   deterministically. The context manager is **one-shot**; `aclose()` closes
   only clients the Api created, since a `client=` passed in is the caller's to
-  close (httpx convention). `timeout=` is ignored when `client=` is given, and
+  close (httpx2 convention). `timeout=` is ignored when `client=` is given, and
   the docstring says so.
 - No sync wrapper/facade unless explicitly requested.
 - Fully type-annotated, `from __future__ import annotations` everywhere, ships
   `py.typed`.
-- Tests run against an in-memory fake behind `httpx.MockTransport` - no
+- Tests run against an in-memory fake behind `httpx2.MockTransport` - no
   network, no mocking library.
 - Docstrings are Google style: one-line module and class summaries, `Args:` on
   the class rather than `__init__`, and `Raises:` listing only conditions

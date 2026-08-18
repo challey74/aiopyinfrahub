@@ -10,7 +10,7 @@ from importlib.metadata import version as _version
 from types import TracebackType
 from typing import Any, Self
 
-import httpx
+import httpx2
 
 from aiopyinfrahub.artifacts import Artifacts
 from aiopyinfrahub.branches import Branches
@@ -75,7 +75,7 @@ class Api(KindHints):
             idempotent operations, since an ambiguous write may have been
             processed. 0 disables.
         page_size: Default GraphQL page size, matching Infrahub's own.
-        client: Custom httpx.AsyncClient (SSL config, proxies, mock
+        client: Custom httpx2.AsyncClient (SSL config, proxies, mock
             transports). A supplied client is yours to close; the Api
             closes only clients it creates itself.
     """
@@ -92,7 +92,7 @@ class Api(KindHints):
         max_concurrency: int = 4,
         retries: int = 3,
         page_size: int = 50,
-        client: httpx.AsyncClient | None = None,
+        client: httpx2.AsyncClient | None = None,
     ) -> None:
         # The server resolves an API key before a JWT, so sending both
         # would silently ignore the credentials the caller cared about.
@@ -130,7 +130,7 @@ class Api(KindHints):
         self._client = (
             client
             if client is not None
-            else httpx.AsyncClient(timeout=timeout, follow_redirects=True)
+            else httpx2.AsyncClient(timeout=timeout, follow_redirects=True)
         )
 
         self.branches = Branches(self)
@@ -168,7 +168,7 @@ class Api(KindHints):
         """Close the connection pool, if this Api created it.
 
         A client passed in via `client=` is the caller's to close
-        (httpx convention), so sharing one client across Api instances
+        (httpx2 convention), so sharing one client across Api instances
         is safe.
         """
         if self._owns_client:
@@ -290,7 +290,7 @@ class Api(KindHints):
         files: Any = None,
         headers: dict[str, str] | None = None,
         idempotent: bool | None = None,
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         """Send one request, authenticating and retrying as needed.
 
         Keeping the JWT dance here rather than at the call sites is the
@@ -298,7 +298,7 @@ class Api(KindHints):
         plumbing, and neither is something a caller can act on.
 
         Args:
-            files: Multipart parts, in httpx's form, for the one upload
+            files: Multipart parts, in httpx2's form, for the one upload
                 route Infrahub has. Passed through rather than posted by
                 the caller directly, so a multipart upload still gets the
                 auth headers and the retry policy.
@@ -347,7 +347,7 @@ class Api(KindHints):
         files: Any = None,
         headers: dict[str, str] | None = None,
         idempotent: bool | None = None,
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         """Send one request, retrying transient failures.
 
         The auth routes call this directly: a 401 from a login or refresh
@@ -368,7 +368,7 @@ class Api(KindHints):
                     files=files,
                     headers=merged,
                 )
-            except httpx.TransportError:
+            except httpx2.TransportError:
                 # An ambiguous failure is only safely repeatable for reads:
                 # a timed-out write may have been processed server-side.
                 if not idempotent or attempt >= self.retries:
@@ -391,7 +391,7 @@ class Api(KindHints):
             attempt += 1
 
     @staticmethod
-    def _decode(resp: httpx.Response) -> Any:
+    def _decode(resp: httpx2.Response) -> Any:
         try:
             return resp.json()
         except ValueError:

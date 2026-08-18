@@ -18,7 +18,7 @@ All four checks run in CI and must pass.
 ## Testing conventions
 
 Tests run entirely against `FakeInfrahub` in `tests/conftest.py`, an in-memory
-Infrahub served through `httpx.MockTransport`. It answers `GET /api/schema` and
+Infrahub served through `httpx2.MockTransport`. It answers `GET /api/schema` and
 `GET /api/info`, the auth routes with expirable JWTs, and the storage,
 artifact, transform, stored-query, schema load/check and diff REST routes, and
 it executes enough of the GraphQL surface to round-trip reads, mutations,
@@ -56,7 +56,7 @@ silently reverted.
 
 ## Dependencies
 
-httpx is the only runtime dependency and that is a hard constraint, not a
+httpx2 is the only runtime dependency and that is a hard constraint, not a
 preference. The dev group is exactly four tools (pyright, pytest,
 pytest-asyncio, ruff). Proposals that add a runtime dependency need a very
 strong case; the usual answer is to hand-roll the small piece we need, which is

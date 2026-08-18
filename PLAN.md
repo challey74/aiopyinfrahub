@@ -293,7 +293,10 @@ Status: Waves A and B are implemented, tested, and committed. The mapping
 table above stays as the record of what each capability was resolved to; where
 the shipped code and a row disagree, the code is the truth (storage's file
 downloads, for one, landed as `get_file()` / `get_file_by_storage_id()` /
-`get_file_by_hfid()` rather than one overloaded method).
+`get_file_by_hfid()` rather than one overloaded method). After Wave C, 0.2.0
+swapped the httpx dependency for httpx2 (Pydantic's maintained continuation),
+an import rename that leaves every decision above standing: read "httpx-only"
+as "httpx2-only" throughout this file.
 
 ## Open questions resolved during design
 

@@ -37,7 +37,7 @@ import keyword
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2
 
 DEFAULT_URL = "https://sandbox.infrahub.app"
 
@@ -260,7 +260,7 @@ def kind_stub(
 
 
 def fetch(url: str, headers: dict[str, str], params: dict[str, str] | None) -> Any:
-    resp = httpx.get(
+    resp = httpx2.get(
         url, headers=headers, params=params, follow_redirects=True, timeout=300
     )
     resp.raise_for_status()
@@ -276,7 +276,7 @@ def server_version(url: str, headers: dict[str, str], data: dict[str, Any]) -> s
     """
     try:
         version = fetch(f"{url}/api/info", headers, None).get("version")
-    except (httpx.HTTPError, ValueError):
+    except (httpx2.HTTPError, ValueError):
         version = None
     return version or f"schema {data.get('main', 'unknown')}"
 

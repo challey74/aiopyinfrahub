@@ -26,7 +26,7 @@ class Storage:
 
     def _url(self, *parts: str) -> str:
         # Identifiers, node ids and kinds are all caller data landing in
-        # a path, and httpx escapes query parameters but not the path.
+        # a path, and httpx2 escapes query parameters but not the path.
         joined = "/".join(segment(part) for part in parts)
         return f"{self.api.base_url}/api/storage/{joined}"
 
@@ -106,6 +106,6 @@ class Storage:
         return await self._content(
             self._url("files", "by-hfid", kind),
             # `hfid` is repeatable: one parameter per part of the id,
-            # which is how httpx renders a list-valued parameter.
+            # which is how httpx2 renders a list-valued parameter.
             {"hfid": hfid},
         )

@@ -2,7 +2,7 @@ import hashlib
 import json
 import re
 
-import httpx
+import httpx2
 import pytest
 
 import aiopyinfrahub
@@ -445,7 +445,7 @@ def make_branch(name, description=None, sync_with_git=False, is_default=False):
 
 
 class FakeInfrahub:
-    """Minimal in-memory Infrahub served through httpx.MockTransport.
+    """Minimal in-memory Infrahub served through httpx2.MockTransport.
 
     The GraphQL route parses the queries this client generates and answers
     them for real: filtering, offset/limit pagination with a true count,
@@ -493,7 +493,7 @@ class FakeInfrahub:
         self.created = 0
         # Failure injection for retry tests: each entry is consumed by one
         # request before normal routing. An int is an HTTP status to return,
-        # "transport" raises httpx.ConnectError, and None lets that one
+        # "transport" raises httpx2.ConnectError, and None lets that one
         # request through, which is how a test targets the second of two.
         self.fail_next = []
         # Canned bodies for hand-written queries, keyed by a substring of
@@ -593,9 +593,9 @@ class FakeInfrahub:
         if self.fail_next:
             failure = self.fail_next.pop(0)
             if failure == "transport":
-                raise httpx.ConnectError("injected failure")
+                raise httpx2.ConnectError("injected failure")
             if failure is not None:
-                return httpx.Response(
+                return httpx2.Response(
                     failure,
                     json={"data": None, "errors": [{"message": "injected"}]},
                     headers={"Retry-After": "0"},
@@ -606,18 +606,18 @@ class FakeInfrahub:
         token = bearer(request)
         if token is not None and token not in self.access_tokens:
             # An expired or revoked JWT: the 401 the client recovers from.
-            return httpx.Response(
+            return httpx2.Response(
                 401, json={"data": None, "errors": [{"message": "Expired token"}]}
             )
         if path == "/api/info":
-            return httpx.Response(
+            return httpx2.Response(
                 200, json={"deployment_id": "fake-deployment", "version": "1.10.8"}
             )
         if path == "/api/schema":
             # The schema is branch-aware on a real server; the fake serves
             # the same one for every branch and records the query param.
             # Only the hash moves, so a load is observable.
-            return httpx.Response(200, json={**SCHEMA, "main": self.schema_hash})
+            return httpx2.Response(200, json={**SCHEMA, "main": self.schema_hash})
         if path in ("/api/schema/load", "/api/schema/check"):
             return self._schema_write(request, path)
         if path.startswith("/api/storage/"):
@@ -632,30 +632,30 @@ class FakeInfrahub:
             return self._diff_rest(path)
         if path == "/graphql" or path.startswith("/graphql/"):
             return self._graphql(request)
-        return httpx.Response(500, json={"error": f"unhandled path {path}"})
+        return httpx2.Response(500, json={"error": f"unhandled path {path}"})
 
     @staticmethod
     def _not_found(message):
-        return httpx.Response(
+        return httpx2.Response(
             404, json={"data": None, "errors": [{"message": message}]}
         )
 
     def _schema_write(self, request, path):
         body = json.loads(request.content)
         if "schemas" not in body:
-            return httpx.Response(
+            return httpx2.Response(
                 422, json={"data": None, "errors": [{"message": "schemas is required"}]}
             )
         if path.endswith("/check"):
             # The check route answers 202 with the diff it would apply.
-            return httpx.Response(202, json={"diff": SCHEMA_DIFF, "warnings": []})
+            return httpx2.Response(202, json={"diff": SCHEMA_DIFF, "warnings": []})
         previous = self.schema_hash
         self.loaded_schemas.extend(body["schemas"])
         self.schema_hash = f"{len(self.loaded_schemas):032x}"
         # A load restarts propagation: the workers have to pick the new
         # hash up before InfrahubStatus calls it synced again.
         self.status_polls = 0
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json={
                 "hash": self.schema_hash,
@@ -670,32 +670,32 @@ class FakeInfrahub:
         content = self.storage_objects.get(identifier)
         if content is None:
             return self._not_found(f"Object {identifier} was not found.")
-        return httpx.Response(
+        return httpx2.Response(
             200, content=content, headers={"Content-Type": "application/octet-stream"}
         )
 
     def _storage(self, request, path):
-        # httpx hands back a decoded path, so the identifiers the client
+        # httpx2 hands back a decoded path, so the identifiers the client
         # percent-encoded are already readable here.
         rest = path.removeprefix("/api/storage/")
         if rest == "upload/content":
             content = json.loads(request.content).get("content") or ""
-            return httpx.Response(200, json=self.add_storage_object(content.encode()))
+            return httpx2.Response(200, json=self.add_storage_object(content.encode()))
         if rest == "upload/file":
             parts = parse_multipart(request)
             if "file" not in parts:
-                return httpx.Response(
+                return httpx2.Response(
                     422,
                     json={"data": None, "errors": [{"message": "file is required"}]},
                 )
             self.uploads.append(parts)
-            return httpx.Response(200, json=self.add_storage_object(parts["file"]))
+            return httpx2.Response(200, json=self.add_storage_object(parts["file"]))
         if rest.startswith("object/"):
             identifier = rest.removeprefix("object/")
             if identifier in self.file_storage_ids:
                 # A CoreFileObject owns it, so this route refuses and the
                 # by-storage-id route is the one that serves it.
-                return httpx.Response(
+                return httpx2.Response(
                     403,
                     json={
                         "data": None,
@@ -722,7 +722,7 @@ class FakeInfrahub:
             if identifier is None:
                 return self._not_found(f"No file object {node_id}.")
             return self._object(identifier)
-        return httpx.Response(500, json={"error": f"unhandled path {path}"})
+        return httpx2.Response(500, json={"error": f"unhandled path {path}"})
 
     def _artifact(self, request, path):
         rest = path.removeprefix("/api/artifact/")
@@ -737,11 +737,11 @@ class FakeInfrahub:
                     "branch": request.url.params.get("branch"),
                 }
             )
-            return httpx.Response(200, json=None)
+            return httpx2.Response(200, json=None)
         content = self.artifacts.get(rest)
         if content is None:
             return self._not_found(f"No artifact {rest}.")
-        return httpx.Response(
+        return httpx2.Response(
             200, content=content, headers={"Content-Type": "text/plain"}
         )
 
@@ -754,14 +754,14 @@ class FakeInfrahub:
             k: v for k, v in request.url.params.items() if k not in ("branch", "at")
         }
         if language == "python":
-            return httpx.Response(
+            return httpx2.Response(
                 200, json={"transform": transform_id, "params": params}
             )
         if language == "jinja2":
             # PlainTextResponse on the real server, so the render is the
             # whole body rather than a JSON document wrapping it.
             rendered = "\n".join(f"{k}: {v}" for k, v in sorted(params.items()))
-            return httpx.Response(200, text=f"# {transform_id}\n{rendered}")
+            return httpx2.Response(200, text=f"# {transform_id}\n{rendered}")
         return self._not_found(f"No {language} transforms.")
 
     def _stored_query(self, request, path):
@@ -785,10 +785,10 @@ class FakeInfrahub:
 
     def _diff_rest(self, path):
         if path == "/api/diff/files":
-            return httpx.Response(200, json=DIFF_FILES)
+            return httpx2.Response(200, json=DIFF_FILES)
         if path == "/api/diff/artifacts":
-            return httpx.Response(200, json=DIFF_ARTIFACTS)
-        return httpx.Response(500, json={"error": f"unhandled path {path}"})
+            return httpx2.Response(200, json=DIFF_ARTIFACTS)
+        return httpx2.Response(500, json={"error": f"unhandled path {path}"})
 
     def _auth(self, request, path):
         if path == "/api/auth/login":
@@ -799,7 +799,7 @@ class FakeInfrahub:
             access, refresh = f"access-{self.logins}", f"refresh-{self.logins}"
             self.access_tokens.add(access)
             self.refresh_tokens.add(refresh)
-            return httpx.Response(
+            return httpx2.Response(
                 200, json={"access_token": access, "refresh_token": refresh}
             )
         if path == "/api/auth/refresh":
@@ -809,18 +809,18 @@ class FakeInfrahub:
             self.refreshes += 1
             access = f"access-r{self.refreshes}"
             self.access_tokens.add(access)
-            return httpx.Response(200, json={"access_token": access})
+            return httpx2.Response(200, json={"access_token": access})
         if path == "/api/auth/logout":
             # X-INFRAHUB-KEY is not accepted here, only the access token.
             if bearer(request) not in self.access_tokens:
                 return self._unauthorized("Not authenticated")
             self.access_tokens.discard(bearer(request))
-            return httpx.Response(200, json=None)
-        return httpx.Response(500, json={"error": f"unhandled path {path}"})
+            return httpx2.Response(200, json=None)
+        return httpx2.Response(500, json={"error": f"unhandled path {path}"})
 
     @staticmethod
     def _unauthorized(message):
-        return httpx.Response(
+        return httpx2.Response(
             401, json={"data": None, "errors": [{"message": message}]}
         )
 
@@ -832,7 +832,7 @@ class FakeInfrahub:
         was pulled out of the stored-query store."""
         for needle, payload in self.canned.items():
             if needle in text:
-                return httpx.Response(200, json=payload)
+                return httpx2.Response(200, json=payload)
         op, name, args, selection = parse_query(text)
         if op == "mutation":
             return self._mutation(name, args, selection)
@@ -868,7 +868,7 @@ class FakeInfrahub:
             }
         }
         self.status_polls += 1
-        return httpx.Response(
+        return httpx2.Response(
             200, json={"data": {"InfrahubStatus": project_fields(payload, selection)}}
         )
 
@@ -879,8 +879,8 @@ class FakeInfrahub:
         if args.get("branch") != DIFF["diff_branch"]:
             # No diff held for that branch, which the server reports as a
             # null payload rather than as an error.
-            return httpx.Response(200, json={"data": {name: None}})
-        return httpx.Response(
+            return httpx2.Response(200, json={"data": {name: None}})
+        return httpx2.Response(
             200, json={"data": {name: project_fields(DIFF, selection)}}
         )
 
@@ -902,7 +902,7 @@ class FakeInfrahub:
         }
         pool["allocated"].append(node)
         payload = {"ok": True, "node": node}
-        return httpx.Response(
+        return httpx2.Response(
             200, json={"data": {name: project_fields(payload, selection)}}
         )
 
@@ -929,7 +929,7 @@ class FakeInfrahub:
                 }
             ],
         }
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json={
                 "data": {
@@ -955,7 +955,7 @@ class FakeInfrahub:
             "count": len(nodes),
             "edges": [{"node": node} for node in nodes[offset : offset + limit]],
         }
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json={
                 "data": {
@@ -1046,7 +1046,7 @@ class FakeInfrahub:
             "destination": destination,
             "paths": found[: data.get("max_paths", 10)],
         }
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json={
                 "data": {"InfrahubPathTraversal": project_fields(payload, selection)}
@@ -1083,7 +1083,7 @@ class FakeInfrahub:
             "source": source,
             "dependencies": dependencies,
         }
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json={
                 "data": {"InfrahubReachableNodes": project_fields(payload, selection)}
@@ -1092,7 +1092,7 @@ class FakeInfrahub:
 
     @staticmethod
     def _errors(message):
-        return httpx.Response(
+        return httpx2.Response(
             200, json={"data": None, "errors": [{"message": message}]}
         )
 
@@ -1138,7 +1138,7 @@ class FakeInfrahub:
                 {"node": self._render(kind, obj, node_selection)}
                 for obj in matches[offset : offset + limit]
             ]
-        return httpx.Response(200, json={"data": {kind: payload}})
+        return httpx2.Response(200, json={"data": {kind: payload}})
 
     def _render(self, kind, obj, selection):
         schema = SCHEMA_BY_KIND[kind]
@@ -1284,7 +1284,7 @@ class FakeInfrahub:
             if target is None:
                 return self._errors(f"{kind} to delete was not found.")
             del self.objects[kind][target["id"]]
-            return httpx.Response(200, json={"data": {name: {"ok": True}}})
+            return httpx2.Response(200, json={"data": {name: {"ok": True}}})
         if action == "Create" or (action == "Upsert" and target is None):
             target = self._new(kind, values)
         elif target is None:
@@ -1296,7 +1296,7 @@ class FakeInfrahub:
             payload["object"] = self._render(
                 kind, target, parse_fields(selection["object"])
             )
-        return httpx.Response(200, json={"data": {name: payload}})
+        return httpx2.Response(200, json={"data": {name: payload}})
 
     def _relationship_mutation(self, name, data):
         """RelationshipAdd/Remove edit one relationship's peer list in place."""
@@ -1319,7 +1319,7 @@ class FakeInfrahub:
             else:
                 current = [p for p in current if p not in peers]
             obj[rel] = current
-            return httpx.Response(200, json={"data": {name: {"ok": True}}})
+            return httpx2.Response(200, json={"data": {name: {"ok": True}}})
         return self._errors(f"Node {data.get('id')} was not found.")
 
     def _convert(self, data):
@@ -1350,7 +1350,7 @@ class FakeInfrahub:
             "__typename": target,
             "display_label": values.get("name"),
         }
-        return httpx.Response(
+        return httpx2.Response(
             200, json={"data": {"ConvertObjectType": {"ok": True, "node": node}}}
         )
 
@@ -1375,7 +1375,7 @@ class FakeInfrahub:
             # Advanced after rendering, so the first read reports states[0].
             for task in page:
                 self._advance(task)
-        return httpx.Response(200, json={"data": {"InfrahubTask": payload}})
+        return httpx2.Response(200, json={"data": {"InfrahubTask": payload}})
 
     def _advance(self, task):
         """Step a task to its next state; the last one repeats forever."""
@@ -1396,7 +1396,7 @@ class FakeInfrahub:
         if args.get("limit") is not None:
             hits = hits[: args["limit"]]
         node_selection = parse_fields(parse_fields(selection["edges"])["node"])
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json={
                 "data": {
@@ -1418,7 +1418,7 @@ class FakeInfrahub:
             branches = [b for b in branches if b["name"] == args["name"]]
         if "ids" in args:
             branches = [b for b in branches if b["id"] in args["ids"]]
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json={
                 "data": {"Branch": [{k: b.get(k) for k in selection} for b in branches]}
@@ -1445,7 +1445,7 @@ class FakeInfrahub:
         elif name == "BranchUpdate":
             self.branches[branch_name]["description"] = data.get("description")
             # BranchUpdate answers with ok only.
-            return httpx.Response(200, json={"data": {name: {"ok": True}}})
+            return httpx2.Response(200, json={"data": {name: {"ok": True}}})
         elif name in ("BranchRebase", "BranchMerge", "BranchValidate"):
             branch = self.branches[branch_name]
             if name == "BranchMerge":
@@ -1465,7 +1465,7 @@ class FakeInfrahub:
                 title=name,
             )
             payload["task"] = {"id": task["id"]}
-        return httpx.Response(200, json={"data": {name: payload}})
+        return httpx2.Response(200, json={"data": {name: payload}})
 
 
 @pytest.fixture
@@ -1474,7 +1474,7 @@ def fake():
 
 
 def make_api(fake, token="abc123", **kwargs):
-    client = httpx.AsyncClient(transport=httpx.MockTransport(fake.handler))
+    client = httpx2.AsyncClient(transport=httpx2.MockTransport(fake.handler))
     return aiopyinfrahub.api(BASE, token=token, client=client, **kwargs)
 
 

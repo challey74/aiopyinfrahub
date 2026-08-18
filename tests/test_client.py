@@ -1,6 +1,6 @@
 import json
 
-import httpx
+import httpx2
 import pytest
 from conftest import BASE, DEVICE_IDS, SITE_ID, make_api, parse_query
 
@@ -141,7 +141,7 @@ async def test_context_manager_closes_owned_client():
 
 
 async def test_supplied_client_is_not_closed(fake):
-    client = httpx.AsyncClient(transport=httpx.MockTransport(fake.handler))
+    client = httpx2.AsyncClient(transport=httpx2.MockTransport(fake.handler))
     async with aiopyinfrahub.api(BASE, token="x", client=client) as ih:
         await ih.version()
     assert not client.is_closed
@@ -157,7 +157,7 @@ async def test_request_error_carries_status_and_body(ih, fake):
 
 
 async def test_content_error_on_non_json(fake):
-    fake.handler = lambda request: httpx.Response(200, text="<html>nope</html>")
+    fake.handler = lambda request: httpx2.Response(200, text="<html>nope</html>")
     async with make_api(fake) as bad:
         with pytest.raises(aiopyinfrahub.ContentError, match="not an Infrahub server"):
             await bad.version()
