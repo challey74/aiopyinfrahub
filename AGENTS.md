@@ -26,7 +26,8 @@ everything below it should not.
 
 Package layout: `src/aiopyinfrahub/`, tests in `tests/`. Managed with `uv`.
 
-**Status: 0.1.0 in progress.** [PLAN.md](PLAN.md) is the pinned design: the
+**Status: 0.1.0 released, with SDK feature parity per PLAN.md Phase 2.**
+[PLAN.md](PLAN.md) is the pinned design: the
 "Public surface" block there is the canonical usage example, and every
 divergence from the sisters is written down under "Resolved decisions" so it is
 not re-litigated. Read it before changing the surface.

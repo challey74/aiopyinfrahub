@@ -7,8 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Initial release in progress. Targets Infrahub 1.3+, written against 1.10.x
-behavior.
+## [0.1.0] - 2026-08-18
+
+Initial release. Targets Infrahub 1.3+, written against 1.10.x behavior.
 
 ### Added
 
@@ -182,4 +183,5 @@ behavior.
 - A runnable FastAPI example (`examples/fastapi_app.py`) showing the
   app-state / lifespan usage pattern for long-lived services.
 
-[unreleased]: https://github.com/challey74/aiopyinfrahub/commits/main
+[unreleased]: https://github.com/challey74/aiopyinfrahub/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/challey74/aiopyinfrahub/releases/tag/v0.1.0
